@@ -2,7 +2,9 @@
 A pedalboard that can send complete settings patches to a THRII guitar amplifier with direct USB-connection
 
 Demonstration video:
-https://youtu.be/Kstgtiw6ibM
+
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/Kstgtiw6ibM/0.jpg)](https://www.youtube.com/watch?v=Kstgtiw6ibM)
 
 The Yamaha THRII-series is a guitar practice amplifier.
 
