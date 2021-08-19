@@ -21,7 +21,7 @@ The Teensy 3.5 can not run the powerful Teensy3.6 USB-Host librar and will not w
 -"2_8_Friendly_t3" based on "ST77889 TFT Display Driver" by Brian L. Clevenger 2019-02-22  
   Requires Adafruit GFX Driver (MIT license)
 - "Bounce2"  Copyright (c) 2013 thomasfredericks (MIT License) Web: https://github.com/thomasfredericks/Bounce2
-- "map", "array", "string", "vector", "<algorithm>"  of GNU C++  
+- "map", "array", "string", "vector", "algorithm>"  of GNU C++  
 - "Teensy 3.x RAM Monitor" Copyright (c) by Adrian Hunt 2015 - 2016  (not needed, but can be helpful to find memory leaks during development)
 - "ArduinoJson" Copyright (c) Benoit Blanchon 2014-2021 https://arduinojson.org 
 - "SPI" version=1.0  Web: http://www.arduino.cc/en/Reference/SPI 
