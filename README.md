@@ -1,12 +1,14 @@
 # THRII-direct-USB-pedalboard
-A pedalboard that can send complete settings patches to a THRII guitar amplifier with direct USB-connection
+A pedalboard that can send complete settings patches to a THRII guitar amplifier with direct USB-connection.
 
-Demonstration video:
+*Note the disclaimer down this page!*
+
+**Demonstration video:**
 
 
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/Kstgtiw6ibM/0.jpg)](https://www.youtube.com/watch?v=Kstgtiw6ibM)
 
-The Yamaha THRII-series is a guitar practice amplifier.
+The Yamaha THRII-series are small guitar practice amplifiers.
 
 There is a smartphone app and a PC and Mac application to control all the sound parameters.
 There even is a bluetooth connection for using foot switches with this amp. But you always need the smartphone app running to use a bluetooth foot switch.
@@ -25,4 +27,11 @@ Patches can be pre-selected by choosing a group of 5 patches (e.g. containing 5 
 A "Patch-Send" button activates that special patch on the THRII.
 
 A "SOLO" button either activates an altered sound patch fitting to the actual one or (if no dedicated solo patch exists) toggles a volume increasement.
+
+**DISCLAIMER:**
+THE HARDWARE SUGGESTIONS AND THE LISTED SOFTWARE HERE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE AND HARDWARE SUGGESTIONS OR THE USE OR OTHER DEALINGS IN THE SOFTWARE AND HARDWARE.
+
+I have no connection to Yamaha / Line6. Every knowledge about the data communications protocol was gained by experimenting, try and error and by looking at the data stream. I especially have not decompiled any part of the Yamaha software application nor of the THR's firmware. Described protocol behaviour can be totally wrong. I only describe results from (good) guesses and succeded experiments - not facts!
+
+I can not ensure, that sending messages in the suggested way will not damage the THRII. As well I can not guarantee, that the hardware, i describe will not damage your THRII device or it's power supply or your computer.
 
