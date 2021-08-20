@@ -1,8 +1,8 @@
 **Target device**
 
-The provided source code is intended for a Teensy 3.6 controller. It should work for the more powerful (but cheaper) Teensy 4.1 controller as well, but i have not tested it.
+The provided source code is intended for a Teensy 3.6 controller. It should work for the more powerful (but a bit cheaper) Teensy 4.1 controller as well, but i have not tested it.
 The Teensy 4.0 controller does not have a SD-card reader on board but could work as well, if you do not need SD card.
-The Teensy 3.5 can not run the powerful Teensy3.6 USB-Host librar and will not work for this project.
+The Teensy 3.5 can not run the powerful Teensy3.6 USB-Host library and will not work for this project.
 
 **Programming language**
 
