@@ -33,6 +33,22 @@ The Teensy 3.5 can not run the powerful Teensy3.6 USB-Host library and will not 
 
 - *"SPI"* version=1.0  Web: http://www.arduino.cc/en/Reference/SPI 
 
+**Software history and structure**
+
+A lot of knowledge about the SysEx protocol came up while programming and was not available before i started.
+I would have designed the program quite different otherwise.
+Do not wonder about weiry design for this reason...
+
+Because testing is easier on a PC I started with a desktop application in C#.
+Some techniques i used in C# were not possible this way in C++ on a microcontroller.
+I had to avoid heap storage where ever possible und could not make extensive use of STL containers.
+
+Some complexity results from the program first being designed for the THR10, where protocol is very different.
+
+Another reason for complexity is the symbol table.
+It is received from the THR30II in startup.
+So the symbols must be hold in dynamic data structures.
+
 
 
 
