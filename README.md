@@ -1,12 +1,16 @@
 # THRII-direct-USB-pedalboard
 A pedalboard that can send complete settings patches to a THRII guitar amplifier with direct USB-connection.
 
+
+<p align="left">
+  <img src="https://github.com/martinzw/THRII-direct-USB-pedalboard/blob/main/Pedalboard_top1.jpg" width="350" title="THRII-direct-USB-pedalboard" alt="The pedalboard (almost ready)">
+</p>
+
 *Note the disclaimer down this page!*
 
-**Demonstration video:**
+**Demonstration video of the prototype:**
 
-
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/Kstgtiw6ibM/0.jpg)](https://www.youtube.com/watch?v=Kstgtiw6ibM)
+[![IMAGE Demonstration video](https://img.youtube.com/vi/Kstgtiw6ibM/0.jpg)](https://www.youtube.com/watch?v=Kstgtiw6ibM)
 
 The Yamaha THRII-series are small guitar practice amplifiers.
 
