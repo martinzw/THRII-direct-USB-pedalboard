@@ -32,6 +32,10 @@ A "Patch-Send" button activates that special patch on the THRII.
 
 A "SOLO" button either activates an altered sound patch fitting to the actual one or (if no dedicated solo patch exists) toggles a volume increasement.
 
+<p align="left">
+  <img src="https://github.com/martinzw/THRII-direct-USB-pedalboard/blob/main/Pedalboard_back2.jpg" width="350" title="THRII-direct-USB-pedalboard" alt="backside">
+</p>
+
 More information is available in the Wiki and in the pdf-document about the SysEx protocol.
 
 **Note for 07/27/2022**
