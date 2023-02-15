@@ -348,7 +348,8 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                         case 0x0131006Bul:   //very old firmware 1.31.0k
                         case 0x01400061ul:   //old firmware 1.40.0a
                         case 0x01420067ul:   //Firmware 1.42.0g
-                        case 0x01430062ul:   //actual Firmware 1.43.0b
+                        case 0x01430062ul:   //Firmware 1.43.0b
+                        case 0x01440061ul:   //latest Firmware 1.44.0a
                             id = outqueue.getHeadPtr()->_id;
                             result+=" Answer to 01-Msg #" + String(id) +": Firmware-Version " + String(msgVals[2],HEX);
                             Firmware = msgVals[2];
@@ -410,6 +411,13 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                                 {
                                     
                                     //Firmware 1.43.0b (same magic key as 1.42.0.g)  28 72 4d 54 5d
+                                    //send Midi activation and await ack
+                                    outqueue.enqueue(Outmessage(SysExMessage( (const byte[21]) { 0xf0, 0x00, 0x01, 0x0c, 0x24, 0x02, 0x4d, 0x00, 0x02, 0x00, 0x00, 0x03, 0x28, 0x72, 0x4d, 0x54, 0x5d, 0x00, 0x00, 0x00, 0xf7 },21), 4, true, false)); 
+                                }
+                                else if (Firmware == 0x01440061) //latest firmware 1.44.0a  
+                                {
+                                    
+                                    //Firmware 1.44.0a (same magic key as 1.42.0.g and 1.43.0b)  28 72 4d 54 5d
                                     //send Midi activation and await ack
                                     outqueue.enqueue(Outmessage(SysExMessage( (const byte[21]) { 0xf0, 0x00, 0x01, 0x0c, 0x24, 0x02, 0x4d, 0x00, 0x02, 0x00, 0x00, 0x03, 0x28, 0x72, 0x4d, 0x54, 0x5d, 0x00, 0x00, 0x00, 0xf7 },21), 4, true, false)); 
                                 }
