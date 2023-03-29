@@ -17,7 +17,7 @@
 *  But genuine Arduino-IDE with additions for Teensy (Teensyduino) should work as well.
 *  THR30II_Pedal.cpp
 *
-* last modified 08/2022
+* last modified 03/2023
 * Author: Martin Zwerschke
 */
 
@@ -42,6 +42,7 @@
 #define TFT_SCLK   13  // Clock out   (SPI standard) --> Teensy3.6 "SCK0"  --> "SCK" on Friendly 2.8
 #define TFT_CS     15  // chip select (SPI standard) --> Teensy3.6 "CS0"   --> "L_CS" on Friendly 2.8
 
+
 ST7789_t3 tft = ST7789_t3(TFT_CS, TFT_DC, TFT_RST);  //Use the constructor for HW-SPI!
 
 /* Set USE_SDCARD to 1 to use SD card reader to read from patch
@@ -65,16 +66,56 @@ ST7789_t3 tft = ST7789_t3(TFT_CS, TFT_DC, TFT_RST);  //Use the constructor for H
 
 #include "THR30II.h"   //Constants for THRII devices
 
+
 #if USE_SDCARD
 #include <SdFat.h>
+#define SD_FAT_TYPE 1
+
+// SDCARD_SS_PIN is defined for the built-in SD on some boards.
+#ifndef SDCARD_SS_PIN
+const uint8_t SD_CS_PIN = SS;
+#else  // SDCARD_SS_PIN
+// Assume built-in SD is used.
+const uint8_t SD_CS_PIN = SDCARD_SS_PIN;
+#endif  // SDCARD_SS_PIN
+
+// Try to select the best SD card configuration.
+#if HAS_SDIO_CLASS
+#define SD_CONFIG SdioConfig(FIFO_SDIO)
+#elif  ENABLE_DEDICATED_SPI
+#define SD_CONFIG SdSpiConfig(SD_CS_PIN, DEDICATED_SPI, SPI_CLOCK)
+#else  // HAS_SDIO_CLASS
+#define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
+#endif  // HAS_SDIO_CLASS
+
 const int sd_chipsel=BUILTIN_SDCARD;
-SdFs SD;
+//SdFs SD;
+
+//File32 file;
+#if SD_FAT_TYPE == 0
+SdFat sd;
+File file;
+#elif SD_FAT_TYPE == 1
+SdFat32 sd;
 File32 file;
+#elif SD_FAT_TYPE == 2
+SdExFat sd;
+ExFile file;
+#elif SD_FAT_TYPE == 3
+SdFs sd;
+FsFile file;
+#else  // SD_FAT_TYPE
+#error Invalid SD_FAT_TYPE
+#endif  // SD_FAT_TYPE
+
+
+
 #define PATCH_FILE "patches.txt" //If you want to use a SD card, a file with this name contains the patches 
-#else
+
+#else  // USE_SDCARD
 //#include <avr/pgmspace.h>
 #include "patches.h"  //Patches located in PROGMEM  (for Teensy 3.6/4.0/4.1 there is enough space there for hundreds of patches)
-#endif
+#endif // USE_SDCARD
 
 //Normal TRACE/DEBUG
 #define TRACE_THR30IIPEDAL(x) x
@@ -113,13 +154,14 @@ Bounce deboun_bl = Bounce();   //front left   (preselect group id +)
 //Variables and constants for display 
 int16_t x=0, y=0;
 String s1("MIDI");
-#define MIDI_EVENT_PACKET_SIZE  64 //for THR30II    was much bigger on old THR10        
+#define MIDI_EVENT_PACKET_SIZE  64 //for THR30II    info: it was much bigger on old THR10        
+#define OUTQUEUE_TIMEOUT 250 //Timeout if a message is not acknowledged or answered
 
 uint8_t buf[MIDI_EVENT_PACKET_SIZE];  //Receive buffer for incoming (raw) Messages from THR30II to controller
 uint8_t currentSysEx[310]; //buffer for the currently processed incoming SysEx message (maybe coming in spanning over up to 5 consecutive buffers)
-						   //was needed on Arduino Due. On Teensy3.6 64 could be enough
+						   //was needed on Arduino Due. On Teensy3.6 64 bytes should be enough
 
-String patchname;  //limitation by Windows THR30 Remote is 64 Bytes.
+String patchname;  //limitation by Windows THR30 Remote is 64 Bytes for patch names.
 
 String preSelName; //Global variable: Name of the pre selected patch
 
@@ -173,7 +215,7 @@ void setup()  //do preparations
 	//SD-card setup
  	#if USE_SDCARD
    	
-	if (!SD.begin(SdioConfig(DMA_SDIO)))
+	if (!sd.begin(SdioConfig(DMA_SDIO)))
 	{
        Serial.println(F("Card failed, or not present."));
     }
@@ -181,10 +223,10 @@ void setup()  //do preparations
 	{
 		Serial.println(F("Card initialized."));
 		
-		if(SD.volumeBegin())
+		if(sd.volumeBegin())
 		{
 			TRACE_THR30IIPEDAL( Serial.print(F("VolumeBegin->success. FAT-Type: "));
-			SD.printFatType(&Serial);
+			sd.printFatType(&Serial);
 			)
 
 			if(file.open(PATCH_FILE))  //Open the patch file "patches.txt" in ReadOnly mode
@@ -4100,28 +4142,29 @@ void WorkingTimer_Tick()
     	
 	if (outqueue.item_count() > 0)   
 	{	
-		Outmessage *msg = outqueue.getHeadPtr();  //& means: directly work message in queue, don't copy it
+		Outmessage *msg = outqueue.getHeadPtr();  //point to first message in queue
 		
-		if (!msg->_sent_out)  
+		if (!msg->_sent_out)    //not sent out yet? ==> send it out
 		{  
 			midi1.sendSysEx(msg->_msg.getSize(),(uint8_t *)(msg->_msg.getData()),true);
 			
 			Serial.println("sent out");
-			msg->_sent_out = true;	
+			msg->_sent_out = true;
+			msg->_time_stamp=millis();	
 							
 		}  //of "not sent out"
-		else if (!msg->_needs_ack && !msg->_needs_answer)   //needs no ACK and no Answer
+		else if (!msg->_needs_ack && !msg->_needs_answer)   //needs no ACK and no Answer? ==> done with this message
 		{
 			outqueue.dequeue();
 			Serial.println("dequ no ack, no answ"); 
 		}
-		else  //sent out, and needs  ack   or   answer
+		else  //sent out, and needs   ack   or   answer   ==> check it
 		{
 			if (msg->_needs_ack)              
 			{
 				if (msg->_acknowledged)
 				{
-					if (!msg->_needs_answer)   //ack OK, no answer needed
+					if (!msg->_needs_answer)   //ack OK, no answer needed   ==> done with this message
 					{
 						outqueue.dequeue();  // => ready
 						Serial.println("dequ ack, no answ");						
@@ -4132,6 +4175,14 @@ void WorkingTimer_Tick()
 					    Serial.println("dequ ack and answ");						
 					}
 				}
+				else if(millis()-msg->_time_stamp > OUTQUEUE_TIMEOUT )
+				{
+					outqueue.dequeue();  //=>ready
+
+					Serial.print("Timeout waiting for acknowledge. Discarded Message #");
+					Serial.println( (int)(msg->_id) );
+				}
+				
 			}
 			else  if(msg->_needs_answer)   //only need Answer, no Ack
 			{
@@ -4140,7 +4191,16 @@ void WorkingTimer_Tick()
 					outqueue.dequeue();  //=>ready
 					Serial.println("dequ no ack but answ");
 				}
+				else if(millis()-msg->_time_stamp > OUTQUEUE_TIMEOUT )
+				{
+					outqueue.dequeue();  //=>ready
+
+					Serial.print("Timeout waiting for answer. Discarded Message #");
+					Serial.println( (int)(msg->_id) );
+				}
 			}
+
+			
 		}
 	}
 }
@@ -4289,7 +4349,7 @@ void OnSysEx(const uint8_t *data, uint16_t length, bool complete)
 
 
 /**
- * \brief Run throug data received from THR30II to find SysEx Messages
+ * \brief Run through data received from THR30II to find SysEx Messages
  *
  * \param buf The buffer.
  * \param cnt Count of valid bytes in buffer
