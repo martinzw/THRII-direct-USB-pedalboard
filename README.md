@@ -44,6 +44,9 @@ For this reason, the provided code was updated in some positions
 **Note for 02/16/2023**
 A new firmware for the THR30II is online (1.44.0.a)
 Code patched
+**Note for 03/29/2023**
+Added a timeout mechanism for the outgoing message queue. This could be neccessary if a message, that expects an acknowledge and/or an answer is not released from the queue (e.g. if the acknowledging frame was not received for whatever reason that might have).
+This could happen, if you use a volume-pedal at an anlog input of the Teensy, resulting in sending out a lot of parameter change messages in a short time period.
 
 **DISCLAIMER:**
 THE HARDWARE SUGGESTIONS THE LISTED SOFTWARE AND ALL INFORMATION HERE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE AND HARDWARE SUGGESTIONS OR THE USE OR OTHER DEALINGS IN THE SOFTWARE AND HARDWARE.
