@@ -565,7 +565,9 @@ class Outmessage
 	 boolean _sent_out = false;
 	 boolean _acknowledged = false;
 	 boolean _answered = false;
-
+	 
+	 uint32_t _time_stamp;   //time as millis()-value, when message was sent out. Use for queue time-out if no ack /answ
+	
 	Outmessage(const SysExMessage &msg, uint16_t id, bool needs_ack = false, bool needs_answer = false)
 	:_id(id),_msg(msg),_needs_ack(needs_ack),_needs_answer(needs_answer)
 	{
