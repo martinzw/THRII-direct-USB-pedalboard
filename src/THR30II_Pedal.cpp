@@ -17,7 +17,7 @@
 *  But genuine Arduino-IDE with additions for Teensy (Teensyduino) should work as well.
 *  THR30II_Pedal.cpp
 *
-* last modified 03/2023
+* last modified 2. May 2023
 * Author: Martin Zwerschke
 */
 
@@ -155,7 +155,7 @@ Bounce deboun_bl = Bounce();   //front left   (preselect group id +)
 int16_t x=0, y=0;
 String s1("MIDI");
 #define MIDI_EVENT_PACKET_SIZE  64 //for THR30II    info: it was much bigger on old THR10        
-#define OUTQUEUE_TIMEOUT 250 //Timeout if a message is not acknowledged or answered
+#define OUTQUEUE_TIMEOUT 2500 //Timeout if a message is not acknowledged or answered
 
 uint8_t buf[MIDI_EVENT_PACKET_SIZE];  //Receive buffer for incoming (raw) Messages from THR30II to controller
 uint8_t currentSysEx[310]; //buffer for the currently processed incoming SysEx message (maybe coming in spanning over up to 5 consecutive buffers)
@@ -190,6 +190,9 @@ static volatile uint16_t npatches = 0;   //counts the patches stored on SD-card 
 #else
 	                                      //patchesII is declared in "patches.h" in this case
 #endif
+
+// Volume-Pedal position's analogRead actual value and last read value
+static uint16_t pedalVal = 0, lastPedalVal = 0;
 
 void setup()  //do preparations
 {
@@ -374,6 +377,11 @@ void setup()  //do preparations
 	deboun_br.attach(button_hr_pin);
 	deboun_br.interval(5);
 
+    // Init Input A0 for Volume pedal (+3.3V -> 47K -> A0 -> (0...47K) -> GND; Zener 3.3V +Rv=270Ohm for protection)
+	// Voltage at A0 should vary from 0 to 1.4V if pedal is connected and up to 1.7V if not connected
+	pinMode(A0, INPUT_DISABLE);
+	analogReference(DEFAULT);
+	
     //Display setup
 	tft.init(240,320);  // 320 is horizontal, 240 is vertical
 	
@@ -543,14 +551,24 @@ uint32_t tick5=millis();  //unused timer for resetting the other timers
 
 void timing()
 {
-     if(millis()>tick1+150)  //mask update if it was required because of changed values
+     if(millis()>tick1+150)  
      {
-		 if(maskActive && maskUpdate)
+		if(maskActive && maskUpdate)   //mask update if it was required because of changed values
 		 {
 		  THR_Values.updateStatusMask(0,85);
 		  tick1=millis();  //start new waiting period
 		  return;
 		 }
+		
+		pedalVal=constrain(analogRead(A0)>>2,0,100);
+		
+		if(abs(pedalVal - lastPedalVal)>1)
+		{
+			TRACE_THR30IIPEDAL(Serial.printf("Volume pedal readout: %d\n",pedalVal);)
+			lastPedalVal=pedalVal;
+			THR_Values.SetGuitarVolume((double) pedalVal);
+		}
+
 	 }
 
 	 if(millis()>tick2+1000)  //force mask update to avoid "forgotten" value changes
@@ -3032,6 +3050,21 @@ double THR30II_Settings::GetControl(uint8_t ctrl)
 	return control[ctrl];
 }
 
+void THR30II_Settings::SetGuitarVolume(double value)
+{
+   std::map <String,uint16_t>  & glob = Constants::glo;
+   guitarVolume = value;
+   if(sendChangestoTHR)
+   {
+	  SendParameterSetting( un_cmd {0xFFFF, glob["GuitarVolume"]}, type_val<double> {0x04,value});
+   }
+}
+
+double THR30II_Settings::GetGuitarVolume()
+{
+    return guitarVolume;
+}
+
 void THR30II_Settings::ReverbSelect(THR30II_REV_TYPES type)  //Setter for selection of the reverb type
 {
 	reverbtype = type;
@@ -4146,7 +4179,7 @@ void WorkingTimer_Tick()
 		
 		if (!msg->_sent_out)    //not sent out yet? ==> send it out
 		{  
-			midi1.sendSysEx(msg->_msg.getSize(),(uint8_t *)(msg->_msg.getData()),true);
+			midi1.sendSysEx(msg->_msg.getSize(),(uint8_t *)(msg->_msg.getData()),true);  //send it out
 			
 			Serial.println("sent out");
 			msg->_sent_out = true;
@@ -4158,42 +4191,45 @@ void WorkingTimer_Tick()
 			outqueue.dequeue();
 			Serial.println("dequ no ack, no answ"); 
 		}
-		else  //sent out, and needs   ack   or   answer   ==> check it
+		else  //sent out, and needs   acknowledge   -or-   answer   ==> check it closer
 		{
-			if (msg->_needs_ack)              
+			if (msg->_needs_ack)   //needs acknowledge           
 			{
-				if (msg->_acknowledged)
+				if (msg->_acknowledged)  //is already acknowledged
 				{
 					if (!msg->_needs_answer)   //ack OK, no answer needed   ==> done with this message
 					{
 						outqueue.dequeue();  // => ready
 						Serial.println("dequ ack, no answ");						
 					}
-					else if (msg->_answered)   //ack OK, Answer received
+					else if (msg->_answered)   //ack OK, Answer received as well
 					{
 						outqueue.dequeue();  //=> ready
 					    Serial.println("dequ ack and answ");						
 					}
-				}
-				else if(millis()-msg->_time_stamp > OUTQUEUE_TIMEOUT )
+				}  
+				//needs ack, but not received it yet
+				else if(millis()-msg->_time_stamp > OUTQUEUE_TIMEOUT )  //Timeout?
 				{
-					outqueue.dequeue();  //=>ready
+					outqueue.dequeue();  //=>discard it
 
 					Serial.print("Timeout waiting for acknowledge. Discarded Message #");
 					Serial.println( (int)(msg->_id) );
 				}
 				
 			}
-			else  if(msg->_needs_answer)   //only need Answer, no Ack
+			//only need Answer, no Ack
+			else  if(msg->_needs_answer)  
 			{
-				if (msg->_answered)   //Answer received
+				if (msg->_answered)   //Answer was received
 				{
 					outqueue.dequeue();  //=>ready
 					Serial.println("dequ no ack but answ");
 				}
-				else if(millis()-msg->_time_stamp > OUTQUEUE_TIMEOUT )
+				//needs Answer, but has not received one yet
+				else if( millis()-msg->_time_stamp > OUTQUEUE_TIMEOUT ) //Timeout
 				{
-					outqueue.dequeue();  //=>ready
+					outqueue.dequeue();  //=>discard it
 
 					Serial.print("Timeout waiting for answer. Discarded Message #");
 					Serial.println( (int)(msg->_id) );
