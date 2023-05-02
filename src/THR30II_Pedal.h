@@ -3,9 +3,9 @@
 */
 
 /*
- * THR30II.h
+ * THR30II_Pedal.h
  *
- * Last modified: 09/2021 
+ * Last modified: 2. May 2023 
  *  Author: Martin Zwerschke
  *
  */ 
