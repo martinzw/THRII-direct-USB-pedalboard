@@ -5,7 +5,7 @@
 /*
  * THR30II.h
  *
- * Last modified: 09/2021 
+ * Last modified: 2. May 2023 
  *  Author: Martin Zwerschke
  *
  */ 
@@ -141,11 +141,11 @@ struct un_cmd
  	uint16_t command;
 };
 
-struct un_par
-{
-	uint16_t unit;
- 	uint16_t command;
-};
+// struct un_par
+// {
+// 	uint16_t unit;
+//  	uint16_t command;
+// };
 
 template <typename T>
 struct type_val
@@ -290,6 +290,8 @@ class THR30II_Settings
 	void CreateNamePatch(); //fill send buffer with just setting for actual patchname, creating a valid SysEx for sending to THR30II
 	void SetControl(uint8_t ctrl, double value);
 	double GetControl(uint8_t ctrl);
+	void SetGuitarVolume(double value);
+	double GetGuitarVolume();
 	void SendTypeSetting(THR30II_UNITS unit, uint16_t val); //Send setting for unit type to THR30II	
 	void SetPatchName(String nam, int nr=-1);  //for the 5 User-Settings (-1 = actual as default )
 	String getPatchName();
@@ -321,6 +323,19 @@ class THR30II_Settings
 	template <typename T>
 	void  SendParameterSetting( un_cmd command, type_val <T> valu)  //Send setting to THR
 	{
+		  //Special unit 0xFFFF for "system parameter"
+            //THR30II remoting: change OUTPUT AUDIO volume => Message to THR30: (2 Frame)
+            //PC:
+            //0000   f0 00 01 0c 24 02 4d 00 16 00 00 07 00 0a 00 00   header 0A for par.change
+            //0010   00 10 00 00 00 00 00 00 00 00 00 00 f7
+            //PC:
+            //0000   f0 00 01 0c 24 02 4d 00 17 00 00 0f 78 7f 7f 7f     FFFFFFFF = system par.
+            //0010   7f 4b 01 00 03 00 04 00 00 00 4d 4c 40 4c 3e 00    01 4b = "AudioVolume"
+            //0020   00 00 00 00 f7              0x3ecccccd = 0.4(float little endian)
+            //THR:
+            //0000   f0 00 01 0c 24 02 4d 00 49 00 00 0b 00 01 00 00   Response 4 Byte val = 0
+            //0010   00 04 00 00 00 00 | 00 00 00 00 | 00 00 f7(Ack.)
+
 		if (!MIDI_Activated)
 			return;
 		
@@ -332,8 +347,15 @@ class THR30II_Settings
 		raw_msg_head[0] = 0x0A;  //0x0A = Opcode for "parameter change"
 		raw_msg_head[4] = (byte) 16; //Length of body  
 
-		raw_msg_body[0] = (byte)(command.unit % 256);
+		raw_msg_body[0] = (byte)(command.unit % 256);  //Normal parameters like GAIN use 2-Byte unit e.g. 0x013C
 		raw_msg_body[1] = (byte)(command.unit / 256);
+		
+		if(command.unit==0xFFFF)   //Extended parameters like AudioVolume and GuitarVolume use 4-Byte unit "0xFFFFFFFF"
+        {  //so fill next two bytes with FF instead of 00
+                raw_msg_body[2] = (byte)(command.unit % 256);
+                raw_msg_body[3] = (byte)(command.unit / 256);
+		}
+		
 		raw_msg_body[4] = (byte)(command.command % 256);
 		raw_msg_body[5] = (byte)(command.command / 256);
 		raw_msg_body[8] = valu.type;
@@ -418,6 +440,8 @@ class THR30II_Settings
 		//and roll back parameter change in the internal mirror settings
 	}	//of SendParameterSetting
 
+   
+
 	std::array<double,CTRL_TREBLE-CTRL_GAIN+1> control {{50,50,50,50,50}}; //actual state of main control knobs
 	std::array<double,CTRL_TREBLE-CTRL_GAIN+1> control_store {{50,50,50,50,50}}; //state of main control knobs for simple Volume-Solo
 	
@@ -454,6 +478,7 @@ class THR30II_Settings
 	bool sendChangestoTHR = true;  //set to false, if changes come from THR-Knobs
 	//State vars
   private:
+	double guitarVolume = 50;  //Field for the actualState of the "GuitarVolume" knob
 	bool MIDI_Activated = false;   //set true, if MIDI unlocked by magic key (success checked by receiving first regular THR-SysEx)
 	
 	bool dumpInProgress = false;
@@ -565,9 +590,9 @@ class Outmessage
 	 boolean _sent_out = false;
 	 boolean _acknowledged = false;
 	 boolean _answered = false;
-	 
+
 	 uint32_t _time_stamp;   //time as millis()-value, when message was sent out. Use for queue time-out if no ack /answ
-	
+
 	Outmessage(const SysExMessage &msg, uint16_t id, bool needs_ack = false, bool needs_answer = false)
 	:_id(id),_msg(msg),_needs_ack(needs_ack),_needs_answer(needs_answer)
 	{
