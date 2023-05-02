@@ -3,7 +3,7 @@
 *
 *
 * ParseSysEx.cpp
-*  last modified 02/2023
+*  last modified 2. May 2023
 *  Author: Martin Zwerschke 
 */
 
@@ -407,7 +407,7 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                                     //send Midi activation and await ack
                                     outqueue.enqueue(Outmessage(SysExMessage( (const byte[21]) { 0xf0, 0x00, 0x01, 0x0c, 0x24, 0x02, 0x4d, 0x00, 0x02, 0x00, 0x00, 0x03, 0x28, 0x72, 0x4d, 0x54, 0x5d, 0x00, 0x00, 0x00, 0xf7 },21), 4, true, false)); 
                                 }
-                                else if (Firmware == 0x01430062) //latest firmware 1.43.0b  
+                                else if (Firmware == 0x01430062) //firmware 1.43.0b  
                                 {
                                     
                                     //Firmware 1.43.0b (same magic key as 1.42.0.g)  28 72 4d 54 5d
@@ -1168,14 +1168,15 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                                 }
                             }
                             else if(msgVals[3]  == glob["GuitarVolume"]) //0x0155:
-                            {
+                            { //user has turned knob "GuitarVolume"
                                 result+=(" Guitar Volume ");
                                 val = NumberToVal(msgVals[5]);
                                 result+=(String(val,0));
+                                SetGuitarVolume(val);
                                 //Perhaps show this in GUI
                             }
                             else if(msgVals[3]  == glob["AudioVolume"])
-                            {
+                            {  //user has turned knob "AudioVolume"
                                 result+=(" Audio Volume ");
                                 val = NumberToVal(msgVals[5]);
                                 result+=(String(val,0));
@@ -1330,8 +1331,8 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                         else if (dumpInProgress && (sameFrameCounter == dumpFrameNumber + 1))  //found next frame of a dump
                         {
                             dumpFrameNumber++;
-                            //Serial.println(String(" Chunk "+String(dumpFrameNumber + 1))+String(" of a dump: Size of this chunk's payload= ")+String(payloadSize - 1,HEX));
-                            result+=" Chunk "+String(dumpFrameNumber + 1)+" of a dump: Size of this chunk's payload= "+String(payloadSize - 1,HEX);
+                            Serial.println(String(" Chunk "+String(dumpFrameNumber + 1))+String(" of a dump: Size of this chunk's payload= ")+String(payloadSize - 1,HEX));
+                            //result+=" Chunk "+String(dumpFrameNumber + 1)+" of a dump: Size of this chunk's payload= "+String(payloadSize - 1,HEX);
                         }
 
                         //for any dump type (except patch-name) and for any of it's chunks we have to copy the content
@@ -1369,6 +1370,7 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                             }
                             else if (symboldump)
                             {
+                                
                                 // byte test[98]={
                                 //              0x03,0x00,0x00,0x00, 
                                 //              0x62,0x00,0x00,0x00,
