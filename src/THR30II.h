@@ -5,7 +5,7 @@
 /*
  * THR30II.h
  *
- * Last modified: 2. May 2023 
+ * Last modified: 5. May 2023 
  *  Author: Martin Zwerschke
  *
  */ 
@@ -292,6 +292,8 @@ class THR30II_Settings
 	double GetControl(uint8_t ctrl);
 	void SetGuitarVolume(double value);
 	double GetGuitarVolume();
+	void SetAudioVolume(double value);
+	double GetAudioVolume();
 	void SendTypeSetting(THR30II_UNITS unit, uint16_t val); //Send setting for unit type to THR30II	
 	void SetPatchName(String nam, int nr=-1);  //for the 5 User-Settings (-1 = actual as default )
 	String getPatchName();
@@ -428,11 +430,11 @@ class THR30II_Settings
 		
 		sendbuf_head[PC_SYSEX_BEGIN.size() + 1] = UseSysExSendCounter();
 		
-		hexdump(sendbuf_head,sendbuf_head.size());
+		//hexdump(sendbuf_head,sendbuf_head.size());
 		outqueue.enqueue(Outmessage(SysExMessage ( sendbuf_head.data(), sendbuf_head.size()),1000,false,false)); //no ack/answ for the header  
 		
 		sendbuf_body[PC_SYSEX_BEGIN.size() + 1] = UseSysExSendCounter();
-		hexdump(sendbuf_body,sbblast-sendbuf_body.begin());
+		//hexdump(sendbuf_body,sbblast-sendbuf_body.begin()); 
 		outqueue.enqueue(Outmessage(SysExMessage( sendbuf_body.data(), sbblast-sendbuf_body.begin()),1001,true,false)); //needs ack  
 
 		//ToDO:  handle ACK for id=1001
@@ -479,6 +481,7 @@ class THR30II_Settings
 	//State vars
   private:
 	double guitarVolume = 50;  //Field for the actualState of the "GuitarVolume" knob
+	double audioVolume = 50;   //Field for the actualState of the "AudioVolume"  knob
 	bool MIDI_Activated = false;   //set true, if MIDI unlocked by magic key (success checked by receiving first regular THR-SysEx)
 	
 	bool dumpInProgress = false;
