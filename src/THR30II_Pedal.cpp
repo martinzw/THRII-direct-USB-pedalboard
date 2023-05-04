@@ -17,7 +17,7 @@
 *  But genuine Arduino-IDE with additions for Teensy (Teensyduino) should work as well.
 *  THR30II_Pedal.cpp
 *
-* last modified 2. May 2023
+* last modified 5. May 2023
 * Author: Martin Zwerschke
 */
 
@@ -62,10 +62,9 @@ ST7789_t3 tft = ST7789_t3(TFT_CS, TFT_DC, TFT_RST);  //Use the constructor for H
 #include <Fonts/FreeMono9pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
 
-//#include "rammon.h"  //(for development only!) Teensy 3.x RAM Monitor copyright by Adrian Hunt (c) 2015 - 2016
+#include "rammon.h"  //(for development only!) Teensy 3.x RAM Monitor copyright by Adrian Hunt (c) 2015 - 2016
 
 #include "THR30II.h"   //Constants for THRII devices
-
 
 #if USE_SDCARD
 #include <SdFat.h>
@@ -122,8 +121,8 @@ FsFile file;
 //#define TRACE_THR30IIPEDAL(x)
 
 //Verbose TRACE/DEBUG
-#define TRACE_V_THR30IIPEDAL(x) x
-//#define TRACE_V_THR30IIPEDAL(x)
+//#define TRACE_V_THR30IIPEDAL(x) x
+#define TRACE_V_THR30IIPEDAL(x)
 
 //Hardware Inputs: 6 Buttons
 const int8_t button_l_pin = 3;       //Preselect "-10"-Button (front left)
@@ -141,7 +140,7 @@ MIDIDevice_BigBuffer midi1(Usb);
 
 bool complete=false;  //used in cooperation with the "OnSysEx"-handler's parameter "complete" 
 
-//RamMonitor rm;  //During development to keep an eye on stack and heap usage
+RamMonitor rm;  //During development to keep an eye on stack and heap usage
 
 //Create a debouncer object for each button
 Bounce deboun_fr = Bounce();   //front right  (preselect patch id -)
@@ -196,7 +195,8 @@ static uint16_t pedalVal = 0, lastPedalVal = 0;
 
 void setup()  //do preparations
 {
-    //rm.run();  //keep Memory Monitor up to date (during development to keep an eye on stack and heap usage)
+    rm.initialize(); //Initialize the Memory Monitor
+	//rm.run();  //keep Memory Monitor up to date (during development to keep an eye on stack and heap usage)
 	
 	// this is the magic trick for printf to support float
   	asm(".global _printf_float");  //make printf work for float values on Teensy
@@ -281,24 +281,24 @@ void setup()  //do preparations
 									}
 									else
 									{
-										TRACE_THR30IIPEDAL(Serial.println("Read Error");)
+										TRACE_THR30IIPEDAL(Serial.println(F("Read Error"));)
 										error=true;
 									}
 								}
 								else
 								{
-									TRACE_THR30IIPEDAL( Serial.println("SeekSet(blockBeg-1) failed!" );)
+									TRACE_THR30IIPEDAL( Serial.println(F("SeekSet(blockBeg-1) failed!"));)
 								}
 
 								error=!(file.seekSet(blockEnd));
 								
 								if(error)
 								{
-									TRACE_THR30IIPEDAL( Serial.println("SeekSet(blockEnd) failed!" );)	
+									TRACE_THR30IIPEDAL( Serial.println(F("SeekSet(blockEnd) failed!" ));)	
 								}
 								else
 								{
-									TRACE_THR30IIPEDAL( Serial.println("SeekSet(blockEnd) succeeded." );)	
+									TRACE_THR30IIPEDAL( Serial.println(F("SeekSet(blockEnd) succeeded.") );)	
 								}
 							}
 							else if(inBrack==0)  //block must not close, if not open!
@@ -322,11 +322,11 @@ void setup()  //do preparations
 					}
 					else
 					{
-						TRACE_THR30IIPEDAL( Serial.println("Error proceeding in file!" );)	
+						TRACE_THR30IIPEDAL( Serial.println(F("Error proceeding in file!"));)	
 					}
 				}
 
-				TRACE_THR30IIPEDAL(Serial.println("Read through \"patches.txt\".\n\r");)
+				TRACE_THR30IIPEDAL(Serial.println(F("Read through \"patches.txt\".\n\r"));)
 				
 				file.close();
 			}
@@ -480,7 +480,7 @@ void setup()  //do preparations
 			else
 			{
 				libraryPatchNames.push_back("error");
-				TRACE_THR30IIPEDAL( Serial.println("JSON-Deserialization error. PatchesII[i] contains:");)
+				TRACE_THR30IIPEDAL( Serial.println(F("JSON-Deserialization error. PatchesII[i] contains:"));)
 				Serial.println(patchesII[i].c_str());
 			}
 	 }
@@ -603,6 +603,10 @@ void timing()
 	    if(maskActive)
 		{
 		 //send_dump_request();  //not used - THR-Remote does not do this as well
+		 rm.run();  //keep Memory Monitor up to date (during development to keep an eye on stack and heap usage)
+		 TRACE_V_THR30IIPEDAL(printf("Used Heap %lu bytes. ",rm.heap_used());)
+		 TRACE_V_THR30IIPEDAL(printf(" Used Stack %lu bytes.\r\n",rm.stack_used());)
+
 		 tick4=millis();  //start new waiting
 		 return;
 		}
@@ -610,7 +614,7 @@ void timing()
 
 	 if(millis()>tick5+15000)
 	 {
-		//TRACE_THR30IIPEDAL( Serial.println("resetting all timers (15s-timeout)"); )
+		//TRACE_THR30IIPEDAL( Serial.println(F("resetting all timers (15s-timeout)")); )
 		// tick5=millis();
 		// tick4=millis();
 	 	// tick3=millis();
@@ -830,7 +834,7 @@ void loop()  //infinite working loop
 
 		if ( button_state!=0 &&  abs(button_state) <12   )  //if key "Patch_up" / "Patch_down" or "Group_up" / "Group_down" is pressed
 		{
-			TRACE_V_THR30IIPEDAL(Serial.print("Patch ID was: ");)
+			TRACE_V_THR30IIPEDAL(Serial.print(F("Patch ID was: "));)
 			TRACE_V_THR30IIPEDAL(Serial.println(presel_patch_id);)
 			int8_t but_ones = button_state%10;
 			int8_t but_tens = button_state/10;
@@ -893,7 +897,7 @@ void loop()  //infinite working loop
 			presel_patch_id = group_id*10+settings_id;  //construct patch_id from group and setting
 			presel_patch_id = constrain(presel_patch_id, 0, npatches); //restrict to interval [0...patchcount] .
 			
-			TRACE_THR30IIPEDAL(Serial.print("Patch ID now: ");)
+			TRACE_THR30IIPEDAL(Serial.print(F("Patch ID now: "));)
 			TRACE_THR30IIPEDAL(Serial.println(presel_patch_id);)
 			
 			if(maskActive)
@@ -997,7 +1001,7 @@ void send_init()  //Try to activate THR30II MIDI
 	TRACE_V_THR30IIPEDAL( Serial.println(F("Enqued Ask Firmware-Version.\r\n")));
 
     //#S3 + #S4 will follow, when answer to "ask Firmware-Version" comes in 
-	//#S3 + #S4  will invoke #R4 (seems always the same) "MIDI activate" (works only after ID_Req!)														   
+	//#S3 + #S4 will invoke #R4 (seems always the same) "MIDI activate" (works only after ID_Req!)														   
 
 }//end of send_init
 
@@ -1039,7 +1043,7 @@ void solo_activate()  //check patch number and decide to send a dedicated Solo-P
 		if( sol_id <= maxx )  //dedicated Solo patch for actual patch-id is available
 		{
 			//store (perhaps altered) patch settings before overwriting (restored on switching back with SOLO-key)
-			TRACE_THR30IIPEDAL(Serial.printf("Store actual patch settings.\n\r");)
+			TRACE_THR30IIPEDAL(Serial.printf(F("Store actual patch settings.\n\r"));)
 			stored_Patch_Values=THR_Values;  //THR30II_Settings class is deep copyable!
 			TRACE_THR30IIPEDAL(Serial.printf("Sending patch # %d\n\r", group_id*10 + sol_id);)
 			send_patch(group_id*10 + sol_id );  //using absolute patch number
@@ -1143,7 +1147,7 @@ void patch_activate(uint16_t pnr)  //check patchnumber and send patch as a SysEx
 	} 
 	else
 	{
-		TRACE_THR30IIPEDAL(Serial.printf("PatchActivate(): invalid pnr");)
+		TRACE_THR30IIPEDAL(Serial.printf(F("PatchActivate(): invalid pnr"));)
 	}
 	
 }
@@ -1246,7 +1250,7 @@ int THR30II_Settings::SetLoadedPatch(const DynamicJsonDocument &djd ) //invoke a
 {
 	if (!MIDI_Activated)
 	{
-		TRACE_THR30IIPEDAL(Serial.println("Midi Sync is not ready!");)
+		TRACE_THR30IIPEDAL(Serial.println(F("Midi Sync is not ready!"));)
 		return -1;
 	}
 
@@ -1364,7 +1368,7 @@ int THR30II_Settings::SetLoadedPatch(const DynamicJsonDocument &djd ) //invoke a
 	SetControl(CTRL_BASS, djd["data"]["tone"]["THRGroupAmp"]["Bass"].as<double>() * 100);
 	SetControl(CTRL_MID,  djd["data"]["tone"]["THRGroupAmp"]["Mid"].as<double>() * 100);
 	SetControl(CTRL_TREBLE,  djd["data"]["tone"]["THRGroupAmp"]["Treble"].as<double>() * 100);
-	TRACE_V_THR30IIPEDAL(Serial.println( "Controls: G, M , B , Mi , T" );)
+	TRACE_V_THR30IIPEDAL(Serial.println( F("Controls: G, M , B , Mi , T") );)
 	TRACE_V_THR30IIPEDAL(Serial.println(control[0]);)
 	TRACE_V_THR30IIPEDAL(Serial.println(control[1]);)
 	TRACE_V_THR30IIPEDAL(Serial.println(control[2]);)
@@ -1402,7 +1406,7 @@ int THR30II_Settings::SetLoadedPatch(const DynamicJsonDocument &djd ) //invoke a
 	GateSetting(GA_DECAY, djd["data"]["tone"]["THRGroupGate"]["Decay"].as<double>() * 100);
 	double v = 100.0 - 100.0 / 96 * -  djd["data"]["tone"]["THRGroupGate"]["Thresh"].as<double>() ;   //change range from [-96dB ... 0dB] to [0...100]
 	GateSetting(GA_THRESHOLD, v);
-	TRACE_V_THR30IIPEDAL(Serial.println( "Gate Thresh:" );)
+	TRACE_V_THR30IIPEDAL(Serial.println(F("Gate Thresh:" ));)
 	TRACE_V_THR30IIPEDAL(Serial.println( v );)
 
 	createPatch();  //send all settings as a patch dump SysEx to THRII
@@ -1799,9 +1803,9 @@ void THR30II_Settings::createPatch() //fill send buffer with actual settings, cr
 
 	int numslices = (int)datalen / 210; //number of 210-byte slices
 	int lastlen = (int)datalen % 210; //data left for last frame containing the rest
-	TRACE_V_THR30IIPEDAL(Serial.print("Datalen: "); Serial.println(datalen);)
-	TRACE_V_THR30IIPEDAL(Serial.print("Number of slices: "); Serial.println(numslices);)
-	TRACE_V_THR30IIPEDAL(Serial.print("Lenght of last slice: "); Serial.println(lastlen);)
+	TRACE_V_THR30IIPEDAL(Serial.print(F("Datalen: ")); Serial.println(datalen);)
+	TRACE_V_THR30IIPEDAL(Serial.print(F("Number of slices: ")); Serial.println(numslices);)
+	TRACE_V_THR30IIPEDAL(Serial.print(F("Lenght of last slice: ")); Serial.println(lastlen);)
 
 	//3.) Create the header:
 	//    SysExStart:  f0 00 01 0c 22 02 4d (always the same)
@@ -1870,7 +1874,7 @@ void THR30II_Settings::createPatch() //fill send buffer with actual settings, cr
 		m = SysExMessage(sb.data(), sblast -sb.begin() );
 		om = Outmessage(m, (uint16_t)(101 + i), false, false);  //no Ack, for all the other slices 
 		outqueue.enqueue(om);  //send slice to THRxxII
-	}
+	} //of "for i=0 to i < numslices"
 
 	if (lastlen > 0) //last slice (could be the first, if it is the only one)
 	{
@@ -1892,7 +1896,7 @@ void THR30II_Settings::createPatch() //fill send buffer with actual settings, cr
 		m =  SysExMessage(sb.data(),sblast-sb.begin());
 		om = Outmessage(m, (uint16_t)(101 + numslices), true, false);  //Ack, but no answer for the header 
 		outqueue.enqueue(om);  //send last slice to THRxxII
-	}
+	}  //of "last slice"
 	
 	TRACE_THR30IIPEDAL(Serial.println(F("\n\rCreate_patch(): Ready outsending."));)
 
@@ -2270,7 +2274,7 @@ int THR30II_Settings::patch_setAll(uint8_t * buf, uint16_t buf_len)
 		byte sextet[6];
 		memcpy(sextet, buf+pt, 6); //fetch token sextet from buffer
 		char tmp[36];
-		sprintf(tmp, "Byte %d of %d : %02X%02X%02X%02X%02X%02X : ",pt,buf_len, sextet[0],sextet[1],sextet[2],sextet[3],sextet[4],sextet[5]);
+		sprintf(tmp, "Byte %hhu of %hhu : %02X%02X%02X%02X%02X%02X : ",pt,buf_len, sextet[0],sextet[1],sextet[2],sextet[3],sextet[4],sextet[5]);
 		logg.append(tmp);
 		
 		if(_state == States::St_idle)
@@ -2360,7 +2364,7 @@ int THR30II_Settings::patch_setAll(uint8_t * buf, uint16_t buf_len)
 		pt += 6; //advance in buffer
 	}
 
-	TRACE_THR30IIPEDAL(Serial.println("patch_setAll parsing ready - results: ");)
+	TRACE_THR30IIPEDAL(Serial.println(F("patch_setAll parsing ready - results: "));)
 	TRACE_V_THR30IIPEDAL(Serial.println(logg);)     
 	TRACE_THR30IIPEDAL(Serial.println("Setting the "+ String(globals.size())+" globals: ");)
 
@@ -2397,14 +2401,14 @@ int THR30II_Settings::patch_setAll(uint8_t * buf, uint16_t buf_len)
 		}
 	}
 
-	TRACE_THR30IIPEDAL(Serial.println("... setting unit vals: ");)
+	TRACE_THR30IIPEDAL(Serial.println(F("... setting unit vals: "));)
 	//Recurse through the whole data structure created while parsing the dump
 	
 	for (std::pair<uint16_t, Dumpunit> du : units)    //foreach!
 	{
 		if(du.first == THR30II_UNITS_VALS[GATE].key)  //Unit Gate also hosts MIX and Subunits COMP...REV
 		{
-			TRACE_V_THR30IIPEDAL(Serial.println("In dumpunit GATE/AMP");)
+			TRACE_V_THR30IIPEDAL(Serial.println(F("In dumpunit GATE/AMP"));)
 
 			if (du.second.parCount != 0)
 			{
@@ -2414,7 +2418,7 @@ int THR30II_Settings::patch_setAll(uint8_t * buf, uint16_t buf_len)
 				{
 					if(kvp.first== THR30II_UNITS_VALS[ECHO].key)   //If SubUnit "Echo"
 					{
-						TRACE_V_THR30IIPEDAL(Serial.println("In dumpSubUnit ECHO");)
+						TRACE_V_THR30IIPEDAL(Serial.println(F("In dumpSubUnit ECHO"));)
 
 						//Before we set Parameters we have to select the Echo-Type
 						uint16_t t=kvp.second.type;
@@ -2440,7 +2444,7 @@ int THR30II_Settings::patch_setAll(uint8_t * buf, uint16_t buf_len)
 					}
 					else if(kvp.first== THR30II_UNITS_VALS[EFFECT].key)   //If SubUnit "Effect"
 					{
-						TRACE_V_THR30IIPEDAL(Serial.println("In dumpSubUnit EFFECT");)
+						TRACE_V_THR30IIPEDAL(Serial.println(F("In dumpSubUnit EFFECT"));)
 
 						//Before we set Parameters we have to select the Effect-Type
 						uint16_t t=kvp.second.type;
@@ -2467,7 +2471,7 @@ int THR30II_Settings::patch_setAll(uint8_t * buf, uint16_t buf_len)
 					}
 					else if(kvp.first== THR30II_UNITS_VALS[COMPRESSOR].key)   //If SubUnit "Compressor"
 					{
-						TRACE_V_THR30IIPEDAL(Serial.println("In dumpSubUnit COMPRESSOR");)
+						TRACE_V_THR30IIPEDAL(Serial.println(F("In dumpSubUnit COMPRESSOR"));)
 
 						for(std::pair<uint16_t, key_longval> p :kvp.second.values)  //Values contained in SubUnit "Compressor"
 						{
@@ -2490,7 +2494,7 @@ int THR30II_Settings::patch_setAll(uint8_t * buf, uint16_t buf_len)
 					}
 					else if(kvp.first==THR30II_UNITS_VALS[THR30II_UNITS::REVERB].key)   //If SubUnit "Reverb"
 					{
-						TRACE_V_THR30IIPEDAL(Serial.println("In dumpSubUnit REVERB");)
+						TRACE_V_THR30IIPEDAL(Serial.println(F("In dumpSubUnit REVERB"));)
 
 						//Before we set Parameters we have to select the Reverb-Type
 						uint16_t t=kvp.second.type;
@@ -2517,7 +2521,7 @@ int THR30II_Settings::patch_setAll(uint8_t * buf, uint16_t buf_len)
 					}
 					else if(kvp.first== THR30II_UNITS_VALS[THR30II_UNITS::CONTROL].key)          //If SubUnit "Control/Amp"
 					{
-						TRACE_V_THR30IIPEDAL(Serial.println("In dumpSubUnit CTRL/AMP");)
+						TRACE_V_THR30IIPEDAL(Serial.println(F("In dumpSubUnit CTRL/AMP"));)
 						setColAmp(kvp.second.type);
 						
 						for(std::pair<uint16_t, key_longval> p : kvp.second.values)     //Values contained in SubUnit "Amp"
@@ -3065,6 +3069,23 @@ double THR30II_Settings::GetGuitarVolume()
     return guitarVolume;
 }
 
+
+void THR30II_Settings::SetAudioVolume(double value)
+{
+   std::map <String,uint16_t>  & glob = Constants::glo;
+   audioVolume = value;
+   if(sendChangestoTHR)
+   {
+	  SendParameterSetting( un_cmd {0xFFFF, glob["AudioVolume"]}, type_val<double> {0x04,value});
+   }
+}
+
+double THR30II_Settings::GetAudioVolume()
+{
+    return audioVolume;
+}
+
+
 void THR30II_Settings::ReverbSelect(THR30II_REV_TYPES type)  //Setter for selection of the reverb type
 {
 	reverbtype = type;
@@ -3216,9 +3237,9 @@ void THR30II_Settings::CreateNamePatch() //fill send buffer with just setting fo
 
 	int numslices = (int)datalen / 210; //number of 210-byte slices
 	int lastlen = (int)datalen % 210; //data left for last frame containing the rest
-	TRACE_V_THR30IIPEDAL(Serial.print("Datalen: "); Serial.println(datalen);)
-	TRACE_V_THR30IIPEDAL(Serial.print("Number of slices: "); Serial.println(numslices);)
-	TRACE_V_THR30IIPEDAL(Serial.print("Lenght of last slice: "); Serial.println(lastlen);)
+	TRACE_V_THR30IIPEDAL(Serial.print(F("Datalen: ")); Serial.println(datalen);)
+	TRACE_V_THR30IIPEDAL(Serial.print(F("Number of slices: ")); Serial.println(numslices);)
+	TRACE_V_THR30IIPEDAL(Serial.print(F("Lenght of last slice: ")); Serial.println(lastlen);)
 
 	//3.) Create the header:
 	//    SysExStart:  f0 00 01 0c 22 02 4d (always the same)
@@ -3309,14 +3330,17 @@ void THR30II_Settings::CreateNamePatch() //fill send buffer with just setting fo
 		m =  SysExMessage(sb.data(),sblast-sb.begin());
 		om = Outmessage(m, (uint16_t)(101 + numslices), true, false);  //Ack, but no answer for the header 
 		outqueue.enqueue(om);  //send last slice to THRxxII
-	}
+	} //of "if last slice"
 	
 	TRACE_THR30IIPEDAL(Serial.println(F("\n\rCreate_Name_patch(): Ready outsending."));)
 
 	// Now we have to await acknowledgment for the last frame
 
-	// on_ack_queue.enqueue(std::make_tuple(101+numslices,Outmessage(SysExMessage((const byte[29]) { 0xf0, 0x00, 0x01, 0x0c, 0x24, 0x02, 0x4d, 0x01, 0x02, 0x00, 0x00, 0x0b, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x3c, 0x00, 0x7f, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0xf7 },29), 
-	//                      101+numslices+1, false, true),nullptr,false)); //answer will be the settings dump for actual settings
+	// on_ack_queue.enqueue(std::make_tuple(101+numslices,    //
+	//                      Outmessage(SysExMessage((const byte[29]) 
+	// 					 { 0xf0, 0x00, 0x01, 0x0c, 0x24, 0x02, 0x4d, 0x01, 0x02, 0x00, 0x00, 0x0b, 0x00, 0x0c, 0x00, 0x00,
+	// 					   0x00, 0x04, 0x00, 0x00, 0x3c, 0x00, 0x7f, 0x7f, 0x7f, 0x7f, 0x00, 0x00, 0xf7 },29), 
+	//                        101+numslices+1, false, true),nullptr,false)); //answer will be the settings dump for actual settings
 
     // Summary of what we did just now:
 	//                 Building the SysEx frame:
@@ -3502,13 +3526,15 @@ String THR30II_Settings::THR30II_MODEL_NAME()
 	}
 }
 
-ArduinoQueue<Outmessage> outqueue(30);  //FIFO Queue for outgoing SysEx-Messages to THRII
+ArduinoQueue<Outmessage> outqueue(50);  //FIFO Queue for outgoing SysEx-Messages to THRII
 
 //Messages, that have to be sent out,
-// and flags to change, if an awaited acknowledge comes in (adressed by their ID)
-ArduinoQueue <std::tuple<uint16_t, Outmessage, bool *, bool> > on_ack_queue;
+// and flags to change, if an awaited acknowledge comes in (addressed by their ID)
+ArduinoQueue <std::tuple<uint16_t, Outmessage, bool *, bool> > on_ack_queue;  
+//tuple of <uint16_t, Outmessage       , bool*      , bool          >
+//             ID   , outgoing SysEx   , flag to set, value for this flag   
 
-ArduinoQueue<SysExMessage> inqueue(40);
+ArduinoQueue<SysExMessage> inqueue(50);  //FIFO Queue for incoming SysEx-Messages from THRII to foot switch
 
 /**
  * \brief Draw boxes for the bars and values on the TFT
@@ -3527,14 +3553,17 @@ void drawStatusMask(uint8_t x, uint8_t y)
  uint16_t xp[6] = {230 ,0, 98, 142, 186, 274}; //upper left corner for effect units on/off rect frames
  //               Co      Ef   Ec   Re   Ga
 
- tft.drawRect( 1+x,0+y,15,111,ST7789_WHITE);  //frame of gain bar
- tft.drawRect(20+x,0+y,15,111,ST7789_WHITE);  //frame of master bar
- tft.drawRect(40+x,0+y,54,111,ST7789_WHITE);  //frame of bass - treble bar box
+ tft.drawRect( 1+x,0+y,12,111,ST7789_WHITE);  //frame of gain bar
+ tft.drawRect(15+x,0+y,12,111,ST7789_WHITE);  //frame of master bar
+ tft.drawRect(29+x,0+y,37,111,ST7789_WHITE);  //frame of bass - treble bar box
+ tft.drawRect(68+x,0+y,27,111,ST7789_WHITE);  //frame of GuitarVolume/AudioVolume bar box
  tft.drawRect(98+x,0+y,220,118,ST7789_WHITE); //frame effect bars' box
  
- tft.drawLine(57+x,1+y,57+x,109+y,ST7789_LIGHTSLATEGRAY); //separator lines in bass - treble bar box
- tft.drawLine(74+x,1+y,74+x,109+y,ST7789_LIGHTSLATEGRAY); 
+ tft.drawLine(41+x,1+y,41+x,109+y,ST7789_LIGHTSLATEGRAY); //separator lines in bass - treble bar box
+ tft.drawLine(53+x,1+y,53+x,109+y,ST7789_LIGHTSLATEGRAY); 
 
+ tft.drawLine(81+x,1+y,81+x,109+y,ST7789_LIGHTSLATEGRAY); //separator line in GuitarVolume/AudioVolume bar box
+ 
  tft.drawLine(xp[ECHO]+x,1+y,xp[ECHO]+x,116+y,ST7789_LIGHTSLATEGRAY); //separator lines in effect bars' box
  tft.drawLine(xp[REVERB]+x,1+y,xp[REVERB]+x,116+y,ST7789_LIGHTSLATEGRAY);
  tft.drawLine(xp[COMPRESSOR]+x,1+y,xp[COMPRESSOR]+x,116+y,ST7789_LIGHTSLATEGRAY);
@@ -3549,13 +3578,18 @@ void drawStatusMask(uint8_t x, uint8_t y)
  tft.setTextColor(ST7789_MAGENTA);
  printAt(tft,1+x,112+y,"G");
  tft.setTextColor(ST7789_YELLOW);
- printAt(tft,20+x,112+y,"M");
+ printAt(tft,15+x,112+y,"M");
  tft.setTextColor(ST7789_CORAL);//Light RED
- printAt(tft,42+x,112+y,"B"); 
+ printAt(tft,29+x,112+y,"B"); 
  tft.setTextColor(ST7789_GREEN);
- printAt(tft,57+x,112+y,"Mi");
+ printAt(tft,41+x,112+y,"M");
  tft.setTextColor(ST7789_LIGHTBLUE);
- printAt(tft,79+x,112+y,"T");
+ printAt(tft,53+x,112+y,"T");
+
+ tft.setTextColor(ST7789_RED);   
+ printAt(tft,68+x,113+y,"V");  //GuitarVolume
+ tft.setTextColor(ST7789_BLUE);
+ printAt(tft,81+x,112+y,"A");  //AudioVolume
 
  //Set font to very small
  tft.setTextSize(1);
@@ -3663,21 +3697,28 @@ void THR30II_Settings::updateStatusMask(uint8_t x, uint8_t y)
 
 	y+=25; //advance y-position to the bars
 	 
-	tft.fillRect(x+2,y+1,13,(100-(uint16_t)control[CTRL_GAIN])*val_scale1,ST7789_BLACK); //erase GainBar
-	tft.fillRect(x+2,y+110-(uint16_t)control[CTRL_GAIN]*val_scale1,13,(uint16_t)control[CTRL_GAIN]*val_scale1,ST7789_MAGENTA); //draw GainBar
+	tft.fillRect(x+2,y+1,10,(100-(uint16_t)control[CTRL_GAIN])*val_scale1,ST7789_BLACK); //erase GainBar
+	tft.fillRect(x+2,y+110-(uint16_t)control[CTRL_GAIN]*val_scale1,10,(uint16_t)control[CTRL_GAIN]*val_scale1,ST7789_MAGENTA); //draw GainBar
 
-	tft.fillRect(x+21,y+1,13,(100-(uint16_t)control[CTRL_MASTER])*val_scale1,ST7789_BLACK);//erase MasterBar
-	tft.fillRect(x+21,y+110-(uint16_t)control[CTRL_MASTER]*val_scale1,13,(uint16_t)control[CTRL_MASTER]*val_scale1,ST7789_YELLOW); //draw MasterBar
+	tft.fillRect(x+16,y+1,10,(100-(uint16_t)control[CTRL_MASTER])*val_scale1,ST7789_BLACK);//erase MasterBar
+	tft.fillRect(x+16,y+110-(uint16_t)control[CTRL_MASTER]*val_scale1,10,(uint16_t)control[CTRL_MASTER]*val_scale1,ST7789_YELLOW); //draw MasterBar
 
-	tft.fillRect(x+41,y+1,15,(100-(uint16_t)control[CTRL_BASS])*val_scale1,ST7789_BLACK); //erase Bass-bar
-	tft.fillRect(x+41,y+110-(uint16_t)control[CTRL_BASS]*val_scale1,15,(uint16_t)control[CTRL_BASS]*val_scale1,ST7789_CORAL);	//draw Bass bar
+	tft.fillRect(x+30,y+1,11,(100-(uint16_t)control[CTRL_BASS])*val_scale1,ST7789_BLACK); //erase Bass-bar
+	tft.fillRect(x+30,y+110-(uint16_t)control[CTRL_BASS]*val_scale1,11,(uint16_t)control[CTRL_BASS]*val_scale1,ST7789_CORAL);	//draw Bass bar
 
-	tft.fillRect(x+58,y+1,15,(100-control[CTRL_MID])*val_scale1,ST7789_BLACK);		 //erase Middle-bar
-	tft.fillRect(x+58,y+110-(uint16_t)control[CTRL_MID]*val_scale1,15,(uint16_t)control[CTRL_MID]*val_scale1,ST7789_GREEN); //draw Middle bar
+	tft.fillRect(x+42,y+1,11,(100-control[CTRL_MID])*val_scale1,ST7789_BLACK);		 //erase Middle-bar
+	tft.fillRect(x+42,y+110-(uint16_t)control[CTRL_MID]*val_scale1,11,(uint16_t)control[CTRL_MID]*val_scale1,ST7789_GREEN); //draw Middle bar
 
-	tft.fillRect(x+76,y+1,15,(100-control[CTRL_TREBLE])*val_scale1,ST7789_BLACK);	 //erase Treble-bar
-	tft.fillRect(x+76,y+110-(uint16_t)control[CTRL_TREBLE]*val_scale1,15,(uint16_t)control[CTRL_TREBLE]*val_scale1,ST7789_LIGHTBLUE); //draw Treble bar
-		
+	tft.fillRect(x+54,y+1,11,(100-control[CTRL_TREBLE])*val_scale1,ST7789_BLACK);	 //erase Treble-bar
+	tft.fillRect(x+54,y+110-(uint16_t)control[CTRL_TREBLE]*val_scale1,11,(uint16_t)control[CTRL_TREBLE]*val_scale1,ST7789_LIGHTBLUE); //draw Treble bar
+
+	tft.fillRect(x+69,y+1,12,(100-guitarVolume)*val_scale1,ST7789_BLACK);	 //erase GuitarVolume-bar
+	tft.fillRect(x+69,y+110-(uint16_t)guitarVolume*val_scale1,12,(uint16_t)guitarVolume*val_scale1,ST7789_RED); //draw GuitarVolume bar
+
+	tft.fillRect(x+82,y+1,12,(100-audioVolume)*val_scale1,ST7789_BLACK);	 //erase AudioVolume-bar
+	tft.fillRect(x+82,y+110-(uint16_t)audioVolume*val_scale1,12,(uint16_t)audioVolume*val_scale1,ST7789_BLUE); //draw AudioVolume bar
+
+
 	//Effect
 	tft.fillRect(x+xp[EFFECT],y+89,43,21,ST7789_BLACK); //erase effect type box (Effect)	  
 	tft.fillRect(x+xp[EFFECT],y+1,43,85,ST7789_BLACK);  //erase effect bars box (Effect)
@@ -4181,7 +4222,7 @@ void WorkingTimer_Tick()
 		{  
 			midi1.sendSysEx(msg->_msg.getSize(),(uint8_t *)(msg->_msg.getData()),true);  //send it out
 			
-			Serial.println("sent out");
+			Serial.println(F("sent out"));
 			msg->_sent_out = true;
 			msg->_time_stamp=millis();	
 							
@@ -4189,7 +4230,7 @@ void WorkingTimer_Tick()
 		else if (!msg->_needs_ack && !msg->_needs_answer)   //needs no ACK and no Answer? ==> done with this message
 		{
 			outqueue.dequeue();
-			Serial.println("dequ no ack, no answ"); 
+			Serial.println(F("dequ no ack, no answ")); 
 		}
 		else  //sent out, and needs   acknowledge   -or-   answer   ==> check it closer
 		{
@@ -4200,12 +4241,12 @@ void WorkingTimer_Tick()
 					if (!msg->_needs_answer)   //ack OK, no answer needed   ==> done with this message
 					{
 						outqueue.dequeue();  // => ready
-						Serial.println("dequ ack, no answ");						
+						Serial.println(F("dequ ack, no answ"));						
 					}
 					else if (msg->_answered)   //ack OK, Answer received as well
 					{
 						outqueue.dequeue();  //=> ready
-					    Serial.println("dequ ack and answ");						
+					    Serial.println(F("dequ ack and answ"));						
 					}
 				}  
 				//needs ack, but not received it yet
@@ -4213,7 +4254,7 @@ void WorkingTimer_Tick()
 				{
 					outqueue.dequeue();  //=>discard it
 
-					Serial.print("Timeout waiting for acknowledge. Discarded Message #");
+					Serial.print(F("Timeout waiting for acknowledge. Discarded Message #"));
 					Serial.println( (int)(msg->_id) );
 				}
 				
@@ -4224,22 +4265,21 @@ void WorkingTimer_Tick()
 				if (msg->_answered)   //Answer was received
 				{
 					outqueue.dequeue();  //=>ready
-					Serial.println("dequ no ack but answ");
+					Serial.println(F("dequ no ack but answ"));
 				}
 				//needs Answer, but has not received one yet
 				else if( millis()-msg->_time_stamp > OUTQUEUE_TIMEOUT ) //Timeout
 				{
 					outqueue.dequeue();  //=>discard it
 
-					Serial.print("Timeout waiting for answer. Discarded Message #");
+					Serial.print(F("Timeout waiting for answer. Discarded Message #"));
 					Serial.println( (int)(msg->_id) );
 				}
 			}
-
 			
 		}
 	}
-}
+} //of WorkingTimer_tick()
 
 SysExMessage::SysExMessage():Data(nullptr),Size(0) //standard constructor
 {
@@ -4381,7 +4421,7 @@ void OnSysEx(const uint8_t *data, uint16_t length, bool complete)
 	{
 		
 	}
-}
+}// of "OnSysEx"
 
 
 /**
