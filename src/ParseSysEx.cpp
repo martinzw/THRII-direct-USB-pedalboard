@@ -3,7 +3,7 @@
 *
 *
 * ParseSysEx.cpp
-*  last modified 2. May 2023
+*  last modified 5. May 2023
 *  Author: Martin Zwerschke 
 */
 
@@ -298,6 +298,7 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                             id = outqueue.getHeadPtr()->_id;
                             result+=" Acknowledge for Message #"+String(id);
                             outqueue.getHeadPtr()->_acknowledged = true;
+                            
                             //function on_ack_reactions(uint16t id)
 
                             std::tuple<uint16_t, Outmessage, bool * , bool > tp;
@@ -307,28 +308,29 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                                 tp = *on_ack_queue.getHeadPtr();                                
                                 if(std::get<0>(tp) == id)   //do they belong to the last outmessage, that is acknowledged now?
                                 {
-                                     Serial.println("working o on_ack_queue, because upload of actual setting was acknowledged. "); 
+                                    Serial.println(F("working on \"on_ack_queue\", because upload of actual setting was acknowledged. ")); 
 
                                     if(std::get<1>(tp)._msg.getSize() != 0) //is there a message to send out?
                                     {
-                                       Serial.println("Sending out an outmessage from on_ack_queue. ");
+                                       Serial.println(F("Sending out an outmessage from \"on_ack_queue.\" "));
                                        outqueue.enqueue(std::get<1>(tp));
                                     }
 
-                                    if(std::get<2>(tp)!=nullptr) //is there a  flag to set?
+                                    if(std::get<2>(tp)!=nullptr) //is there a flag to be set?
                                     {
-                                       Serial.println("Setting a flag from on_ack_queue. ");
-                                        *std::get<2>(tp)=std::get<3>(tp);  //set the value of the flag
+                                       Serial.println(F("Setting a flag from on_ack_queue. "));
+                                       *std::get<2>(tp)=std::get<3>(tp);  //set the value of the flag
                                     }
                                     
                                     //now read actual settings
-                                    on_ack_queue.dequeue();    
+
+                                    on_ack_queue.dequeue();   //remove the readily processed action from the on_ack_queue 
                                 }
                             }
 
                             if(id==999)
                             {
-                                Serial.println(" Switch User Setting acknowledged. (999)"); 
+                                Serial.println(F(" Switch User Setting acknowledged. (999)")); 
                                 //now read actual settings
 
                                 //#S8   Request actual user settings (Expect several frames - settings dump)
@@ -1180,6 +1182,7 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                                 result+=(" Audio Volume ");
                                 val = NumberToVal(msgVals[5]);
                                 result+=(String(val,0));
+                                SetAudioVolume(val);
                                 //Perhaps show this in GUI
                             }
                             else if(msgVals[3]  == glob["GuitProcInputGain"])
@@ -1236,7 +1239,7 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                                
                                 if(dump==nullptr)
                                 {
-                                    Serial.println("\n\rAllocation Error for patch dump!");
+                                    Serial.println(F("\n\rAllocation Error for patch dump!"));
                                 }
 
                                 if (dumplen <= payloadSize - 8) //complete patch fits in this one message
@@ -1314,7 +1317,7 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                                 dump_len=dumplen;
                                 if(dump==nullptr)
                                 {
-                                    Serial.println("\n\rAllocation Error for symbol dump!");
+                                    Serial.println(F("\n\rAllocation Error for symbol dump!"));
                                 }
 
                                 if ((dumplen == len) && (dumplen > 0xFF))  //a symbol table dump is very long!
@@ -1385,7 +1388,7 @@ String THR30II_Settings::ParseSysEx(const byte cur[], int cur_len)
                                 
                                 Init_Dictionaries();  //Now use constants in this App's dictionaries
                                 
-                                Serial.println("\n\rDictionaries initialized:");
+                                Serial.println(F("\n\rDictionaries initialized:"));
 
                                 int id = 0;
                                 if (outqueue.itemCount() > 0)
