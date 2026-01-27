@@ -62,6 +62,13 @@ The analog value at A0 should vary from 0V to 1.4V if the pedal (being simply an
 The extended parameters AudioVolume and GuitarVolume are now shown as bars on the tft screen.
 </p>
 <p align="left">
+**Note for 27/01/2026<br/>
+The code only works with older firmware versions (e.g. 1.44.0.a), because in newer versions there is a firmware bug (I guess) preventing sending the symbol table on request - only the last frame of many is send out now.
+But you can use the old symbol table, received with old version and store it in teensy program instead of alwas requesting it.
+There have not been changes in the symbol table in the last versions.
+Alternatively you can use the symbol table file from a subfolder of THR-Remote.
+</p>
+<p align="left">
 **DISCLAIMER:**<br/>
 THE HARDWARE SUGGESTIONS THE LISTED SOFTWARE AND ALL INFORMATION HERE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE AND HARDWARE SUGGESTIONS OR THE USE OR OTHER DEALINGS IN THE SOFTWARE AND HARDWARE.
 
